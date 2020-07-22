@@ -1,0 +1,67 @@
+---
+# VERSPM Scope Definition
+
+scope:
+    name: VERSPM
+    desc: VisionEval Regional Strategic Planning Model
+
+inputs:
+
+    ValueOfTime:
+        shortname: Value of Time
+        ptype: uncertainty
+        dtype: int
+        desc: Value of a unit of travel time, base cost year dollars per hour
+        default: 16
+        min: 10
+        max: 20
+        dist:
+            name: pert
+            peak: 16
+
+    Income:
+        shortname: HH Income
+        ptype: uncertainty
+        dtype: int
+        desc: Household Income per Capita in Year 2038 (GQ Income is 3/13ths)
+        default: 46367
+        min: 43334    # for GQIncomePC 10000
+        max: 49400    # for GQIncomePC 11400
+
+outputs:
+
+    no_build_travel_time:
+        shortname: No Build Time
+        kind: info
+        metamodeltype: logxp-linear(-59)
+
+    build_travel_time:
+        shortname: Build Time
+        kind: minimize
+        metamodeltype: logxp-linear(-59)
+
+    time_savings:
+        shortname: Time Savings
+        kind: maximize
+        metamodeltype: log-linear
+
+    value_of_time_savings:
+        shortname: Value Time Save
+        kind: maximize
+        metamodeltype: log-linear
+
+    net_benefits:
+        shortname: Net Benefits
+        kind: maximize
+
+    cost_of_capacity_expansion:
+        shortname: Cost of Expand
+        kind: minimize
+        metamodeltype: log-linear
+
+    present_cost_expansion:
+        shortname: Present Cost
+        kind: info
+        metamodeltype: log-linear
+
+...
