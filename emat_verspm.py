@@ -303,6 +303,9 @@ class VERSPModel(FilesCoreModel):
 		self._manipulate_model_parameters_json(params)
 		self._manipulate_income(params)
 		self._manipulate_bikes(params)
+		self._manipulate_land_use(params)
+		self._manipulate_transit(params)
+		self._manipulate_fuel_cost(params)
 		_logger.info("VERSPM SETUP complete")
 
 	def _manipulate_model_parameters_json(self, params):
@@ -436,6 +439,36 @@ class VERSPModel(FilesCoreModel):
 
 		out_filename = join_norm(
 			self.resolved_model_path, 'inputs', 'marea_transit_service.csv'
+		)
+		_logger.debug(f"writing updates to: {out_filename}")
+		with open(out_filename, 'wt') as f:
+			f.write(y)
+
+	def _manipulate_fuel_cost(self, params):
+		"""
+		Prepare the fuel and electric input file based on a template file.
+
+		Args:
+			params (dict):
+				The parameters for this experiment, including both
+				exogenous uncertainties and policy levers.
+		"""
+
+		computed_params = {}
+		computed_params['FuelCost'] = params['FuelCost']
+		computed_params['ElectricCost'] = params['ElectricCost']
+
+		with open(scenario_input('G','azone_fuel_power_cost.csv.template'), 'rt') as f:
+			y = f.read()
+
+		for n in computed_params.keys():
+			y = y.replace(
+				f"__EMAT_PROVIDES_{n}__",  # the token to replace
+				f"{computed_params[n]:.3f}",  # the value to replace it with (as a string)
+			)
+
+		out_filename = join_norm(
+			self.resolved_model_path, 'inputs', 'azone_fuel_power_cost.csv'
 		)
 		_logger.debug(f"writing updates to: {out_filename}")
 		with open(out_filename, 'wt') as f:

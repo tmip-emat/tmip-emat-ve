@@ -55,6 +55,34 @@ inputs:
         min: 0.5
         max: 4.0
 
+    FuelCost:
+        shortname: Fuel Cost
+        desc: Real fuel price in 2010 USD per gallon
+        ptype: uncertainty
+        dtype: float
+        default: 2.43
+        min: 1.50
+        max: 11.50
+        dist:
+            name: pert
+            peak: 4.0
+        corr:
+            ElectricCost: 0.80
+
+    ElectricCost:
+        shortname: Fuel Cost
+        desc: Real electric price in 2010 USD per kwh
+        ptype: uncertainty
+        dtype: float
+        default: 0.08
+        min: 0.06
+        max: 0.416
+        dist:
+            name: pert
+            peak: 0.10
+        corr:
+            FuelCost: 0.80
+
 outputs:
 
     GHGReduction:
