@@ -36,6 +36,17 @@ inputs:
         min: 0.08
         max: 0.2
 
+    LandUse:
+        shortname: Land Use
+        desc: Distribution of population and employment by place type.
+        ptype: uncertainty
+        dtype: cat
+        default: base
+        values:
+            - base    # Maintain current distribution
+            - growth  # Activity center growth, LU overlaps with HHsize + Population
+
+
 outputs:
 
     GHGReduction:

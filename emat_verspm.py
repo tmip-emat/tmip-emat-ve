@@ -384,6 +384,32 @@ class VERSPModel(FilesCoreModel):
 		with open(out_filename, 'wt') as f:
 			f.write(y)
 
+	def _manipulate_land_use(self, params):
+		"""
+		Copy in the relevant the land use input files.
+
+		Args:
+			params (dict):
+				The parameters for this experiment, including both
+				exogenous uncertainties and policy levers.
+		"""
+		lu_files = [
+			'azone_gq_pop_by_age.csv',
+			'azone_hh_pop_by_age.csv',
+			'azone_hhsize_targets.csv',
+			'bzone_urban_du_proportions.csv',
+		]
+
+		if params['LandUse'] == 'base':
+			i = '1'
+		else:
+			i = '2'
+
+		for filename in lu_files:
+			shutil.copyfile(
+				scenario_input('L',i,filename),
+				join_norm(self.resolved_model_path, 'inputs', filename)
+			)
 
 
 	def run(self):
