@@ -28,40 +28,43 @@ inputs:
         min: 43334    # for GQIncomePC 10000
         max: 49400    # for GQIncomePC 11400
 
+    Bicycles:
+        desc: Network improvements, incentives, and technologies that encourage bicycling and other light-weight vehicle travel.
+        ptype: lever
+        dtype: float
+        default: 0.08
+        min: 0.08
+        max: 0.2
+
 outputs:
 
-    no_build_travel_time:
-        shortname: No Build Time
+    GHGReduction:
+        shortname: GHG Reduction
+        kind: maximize
+    DVMTPerCapita:
+        shortname: Daily VMT Per Capita
         kind: info
-        metamodeltype: logxp-linear(-59)
-
-    build_travel_time:
-        shortname: Build Time
-        kind: minimize
-        metamodeltype: logxp-linear(-59)
-
-    time_savings:
-        shortname: Time Savings
-        kind: maximize
-        metamodeltype: log-linear
-
-    value_of_time_savings:
-        shortname: Value Time Save
-        kind: maximize
-        metamodeltype: log-linear
-
-    net_benefits:
-        shortname: Net Benefits
-        kind: maximize
-
-    cost_of_capacity_expansion:
-        shortname: Cost of Expand
-        kind: minimize
-        metamodeltype: log-linear
-
-    present_cost_expansion:
-        shortname: Present Cost
+    WalkTravelPerCapita:
+        shortname: Daily Walk Travel Per Capita
         kind: info
-        metamodeltype: log-linear
+    AirPollutionEm:
+        shortname: Air Pollution
+        kind: info
+    FuelUse:
+        shortname: Annual Fuel Use
+        kind: info
+    TruckDelay:
+        shortname: Daily Truck Hours Delay
+        kind: info
+    VehicleCost:
+        shortname: Vehicle Cost / Income
+        kind: info
+    VehicleCostLow:
+        shortname: Low Income Veh. Cost / Income
+        kind: info
+
+
+
+
 
 ...

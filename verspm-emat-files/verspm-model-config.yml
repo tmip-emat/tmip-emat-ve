@@ -2,5 +2,6 @@
 model_path: ./VERSPM
 model_archive: ./archive
 model_source: ~/sandbox/VisionEval-Dev/built/visioneval/4.0.2/runtime/models
+rel_output_path: ./output
 r_library_path: ~/sandbox/VisionEval-Dev/built/visioneval/4.0.2/ve-lib
 r_runtime_path: ~/sandbox/VisionEval-Dev/built/visioneval/4.0.2/runtime

@@ -194,28 +194,21 @@ class VERSPModel(FilesCoreModel):
 
 		# Add parsers to instruct the load_measures function
 		# how to parse the outputs and get the measure values.
-		# self.add_parser(
-		# 	TableParser(
-		# 		"output_1.csv.gz",
-		# 		{
-		# 			'value_of_time_savings': loc['plain', 'value_of_time_savings'],
-		# 			'present_cost_expansion': loc['plain', 'present_cost_expansion'],
-		# 			'cost_of_capacity_expansion': loc['plain', 'cost_of_capacity_expansion'],
-		# 			'net_benefits': loc['plain', 'net_benefits'],
-		# 		},
-		# 		index_col=0,
-		# 	)
-		# )
-		# self.add_parser(
-		# 	MappingParser(
-		# 		"output.yaml",
-		# 		{
-		# 			'build_travel_time': key['build_travel_time'],
-		# 			'no_build_travel_time': key['no_build_travel_time'],
-		# 			'time_savings': key['time_savings'],
-		# 		}
-		# 	)
-		# )
+		self.add_parser(
+			MappingParser(
+				"ComputedMeasures.json",
+				{
+					'GHGReduction'        : key['GHGReduction'],
+					'DVMTPerCapita'       : key['DVMTPerCapita'],
+					'WalkTravelPerCapita' : key['WalkTravelPerCapita'],
+					'TruckDelay'          : key['TruckDelay'],
+					'AirPollutionEm'      : key['AirPollutionEm'],
+					'FuelUse'             : key['FuelUse'],
+					'VehicleCost'         : key['VehicleCost'],
+					'VehicleCostLow'      : key['VehicleCostLow'],
+				}
+			)
+		)
 
 
 	def setup(self, params: dict):
@@ -258,6 +251,11 @@ class VERSPModel(FilesCoreModel):
 		"""
 		_logger.info("VERSPM SETUP...")
 
+		for p in self.scope.get_parameters():
+			if p.name not in params:
+				_logger.warning(f" - for {p.name} using default value {p.default}")
+				params[p.name] = p.default
+
 		super().setup(params)
 
 		# Check if we are using distributed multi-processing. If so,
@@ -286,6 +284,11 @@ class VERSPModel(FilesCoreModel):
 			# on how large your core model is, you may or may
 			# not want to be copying the whole thing.
 			if self.local_directory != worker.local_directory:
+
+				# Make the archive path absolute, so all archives
+				# go back to the original directory.
+				self.archive_path = os.path.abspath(self.resolved_archive_path)
+
 				_logger.debug(f"DISTRIBUTED.COPY FROM {self.local_directory}")
 				_logger.debug(f"                   TO {worker.local_directory}")
 				copy_tree(
@@ -299,6 +302,7 @@ class VERSPModel(FilesCoreModel):
 		# and having seperate methods makes this clearer.
 		self._manipulate_model_parameters_json(params)
 		self._manipulate_income(params)
+		self._manipulate_bikes(params)
 		_logger.info("VERSPM SETUP complete")
 
 	def _manipulate_model_parameters_json(self, params):
@@ -346,6 +350,35 @@ class VERSPModel(FilesCoreModel):
 
 		out_filename = join_norm(
 			self.resolved_model_path, 'inputs', 'azone_per_cap_inc.csv'
+		)
+		_logger.debug(f"writing updates to: {out_filename}")
+		with open(out_filename, 'wt') as f:
+			f.write(y)
+
+	def _manipulate_bikes(self, params):
+		"""
+		Prepare the biking input file based on a template file.
+
+		Args:
+			params (dict):
+				The parameters for this experiment, including both
+				exogenous uncertainties and policy levers.
+		"""
+
+		computed_params = {}
+		computed_params['BikeDiversion'] = params['Bicycles']
+
+		with open(scenario_input('B','azone_prop_sov_dvmt_diverted.csv.template'), 'rt') as f:
+			y = f.read()
+
+		for n in computed_params.keys():
+			y = y.replace(
+				f"__EMAT_PROVIDES_{n}__",  # the token to replace
+				f"{computed_params[n]:.3f}"  # the value to replace it with (as a string)
+			)
+
+		out_filename = join_norm(
+			self.resolved_model_path, 'inputs', 'azone_prop_sov_dvmt_diverted.csv'
 		)
 		_logger.debug(f"writing updates to: {out_filename}")
 		with open(out_filename, 'wt') as f:
@@ -481,70 +514,62 @@ class VERSPModel(FilesCoreModel):
 			KeyError:
 				If post process is not available for specified measure
 		"""
-		_logger.info("VERSPM POST-PROCESS ...")
 
-		if measure_names is None:
-			measure_names = set(self.scope.get_measure_names())
-		else:
-			# Convert the collection of measure_names to a set for easy
-			# checking if each target measure is in measure_names
-			measure_names = set(measure_names)
+		# Derived from VERSPMResults.R in VisionEval package
 
-			# Check if any measure names not in the scope are given.
-			# Raise a KeyError if there are any.
-			unknown_measure_names = measure_names - set(self.scope.get_measure_names())
-			if unknown_measure_names:
-				raise KeyError(unknown_measure_names)
+		if output_path is None:
+			output_path = join_norm(self.local_directory, self.model_path, self.rel_output_path)
+		marea_2038 = pd.read_csv(
+			join_norm(output_path, 'Marea.csv'),
+		).query("Year==2038")
+		household_2038 = pd.read_csv(
+			join_norm(output_path, 'Household.csv'),
+		).query("Year==2038")
 
-		# Create Outputs directory as needed.
-		os.makedirs(
-			join_norm(self.local_directory, self.model_path, self.rel_output_path),
-			exist_ok=True,
+		population = household_2038['HhSize'].sum()
+		GHGReduction = 0
+		DVMTPerCapita = household_2038['Dvmt'].sum() / population
+		WalkTravelPerCapita = household_2038['WalkTrips'].sum() / population
+		AirPollutionEm = household_2038['DailyCO2e'].sum()
+		FuelUse = (
+			household_2038['DailyGGE'].sum()
+			+ marea_2038['ComSvcUrbanGGE_GGE.DAY_'].sum()
+			+ marea_2038['ComSvcNonUrbanGGE_GGE.DAY_'].sum()
+		) * 365
+		TruckDelay = 0
+		OperationCost = household_2038['AveVehCostPM'] * household_2038['Dvmt']
+		TotalCost = household_2038['OwnCost']+OperationCost
+		VehicleCost = TotalCost.sum()/household_2038['Income'].sum() * 100
+
+		def deflateCurrency(values, FromYear, ToYear):
+			deflators_df = pd.read_csv(join_norm(self.model_path, 'defs', 'deflators.csv'))
+			deflators_df.index = deflators_df['Year'].astype(str)
+			FromYear = str(FromYear)
+			ToYear = str(ToYear)
+			if FromYear not in deflators_df.index:
+				raise KeyError(f"invalid FromYear {FromYear}")
+			if ToYear not in deflators_df.index:
+				raise KeyError(f"invalid ToYear {ToYear}")
+			return values * deflators_df.loc[ToYear, 'Value'] / deflators_df.loc[FromYear, 'Value']
+
+		BaseYear = 2010
+		Income2005 = deflateCurrency(household_2038['Income'], BaseYear, "2005")
+		IsLowIncome = Income2005 < 20000
+		VehicleCostLow = TotalCost[IsLowIncome].sum()/household_2038[IsLowIncome]['Income'].sum() * 100
+
+		result = dict(
+			GHGReduction=GHGReduction,
+			DVMTPerCapita=DVMTPerCapita,
+			WalkTravelPerCapita=WalkTravelPerCapita,
+			TruckDelay=TruckDelay,
+			AirPollutionEm=AirPollutionEm,
+			FuelUse=FuelUse,
+			VehicleCost=VehicleCost,
+			VehicleCostLow=VehicleCostLow,
 		)
 
-		# These measures are included in the first post-processing block
-		block_1 = {
-			'value_of_time_savings',
-			'present_cost_expansion',
-			'cost_of_capacity_expansion',
-			'net_benefits',
-		}
-
-		if block_1 & measure_names:
-
-			# Do some processing to recover values from output.csv.gz
-			df = pd.read_csv(
-				join_norm(self.local_directory, self.model_path, 'output.csv.gz'),
-				index_col=0,
-			)
-			repair = pd.isna(df.loc['plain'])
-			df.loc['plain', repair] = np.log(df.loc['exp', repair])*1000
-			# Write edited output.csv.gz to Outputs directory.
-			df.to_csv(
-				join_norm(self.local_directory, self.model_path, self.rel_output_path, 'output_1.csv.gz')
-			)
-
-		block_2 = {
-			'build_travel_time',
-			'no_build_travel_time',
-			'time_savings',
-		}
-
-		if block_2 & measure_names:
-
-			# Copy output.yaml to Outputs directory, no editing needed.
-			shutil.copy2(
-				join_norm(self.local_directory, self.model_path, 'output.yaml'),
-				join_norm(self.local_directory, self.model_path, self.rel_output_path, 'output.yaml'),
-			)
-
-		# Log the names of all the files in the local directory
-		_logger.debug(f"Files in {self.local_directory}")
-		for i,j,k in os.walk(self.local_directory):
-			for eachfile in k:
-				_logger.debug(join_norm(i,eachfile).replace(self.local_directory, '.'))
-
-		_logger.info("VERSPM POST-PROCESS complete")
+		with open(join_norm(output_path, 'ComputedMeasures.json'), 'wt') as out:
+			json.dump(result, out)
 
 
 	def archive(self, params, model_results_path=None, experiment_id=None):
@@ -569,13 +594,15 @@ class VERSPModel(FilesCoreModel):
 				if db is not None:
 					experiment_id = db.get_experiment_id(self.scope.name, None, params)
 			model_results_path = self.get_experiment_archive_path(experiment_id)
+		zipname = model_results_path.rstrip("/\\")
 		_logger.info(
 			f"VERSPM ARCHIVE\n"
-			f" from: {join_norm(self.local_directory, self.model_path)}\n"
-			f"   to: {model_results_path}"
+			f" from: {join_norm(self.local_directory, self.model_path, self.rel_output_path)}\n"
+			f"   to: {zipname}.zip"
 		)
-		copy_tree(
-			join_norm(self.local_directory, self.model_path),
-			model_results_path,
+		shutil.make_archive(
+			zipname, 'zip',
+			root_dir=join_norm(self.local_directory, self.model_path),
+			base_dir=self.rel_output_path,
 		)
 

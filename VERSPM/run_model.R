@@ -71,4 +71,4 @@ for(Year in getYears()) {
 }
 cat('run_model.R: run complete.\n')
 
-ve.export()
+ve.export(overwrite=TRUE)

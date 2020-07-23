@@ -279,7 +279,7 @@ fx.last_run_logs()
 show_dir(os.path.join(fx.master_directory.name, 'VERSPM', 'output'))
 
 # %%
-STOP
+os.path.join(fx.master_directory.name, 'VERSPM', 'output')
 
 # %% [markdown]
 # ### post-process
@@ -335,15 +335,7 @@ fx.post_process()
 # results are written to two separate files: 'output_1.csv.gz' and 'output.yaml'.
 
 # %%
-show_file_contents(fx.local_directory, 'road-test-files', "Outputs", "output.yaml")
-
-# %% [markdown]
-# Note in this example, some of the values in the `output_1.csv.gz` file
-# are intentionally manipulated in a contrived manner, so that there is 
-# some work for the post-processor to do.
-
-# %%
-show_file_contents(fx.local_directory, 'road-test-files', "Outputs", "output_1.csv.gz")
+show_file_contents(fx.model_path, "output", "ComputedMeasures.json")
 
 # %% [markdown]
 # ### load-measures
@@ -392,6 +384,9 @@ fx.archive(params)
 # %%
 show_dir(fx.local_directory)
 
+# %%
+STOP
+
 # %% [markdown]
 # It is permissible, but not required, to simply copy the entire contents of the 
 # former to the latter, as is done in this example. However, if the current active model
@@ -423,85 +418,14 @@ design1
 # seconds to conduct these eight model experiment runs.
 
 # %%
-fx.run_experiments(design_name='lhs_1')
-
-# %% [markdown]
-# ### Re-running Failed Experiments
-#
-# If you pay attention to the logged output, you might notice that one of the 
-# experiments (the last one) failed.  We can see `NaN` values in the outputs.
-
-# %%
-results = fx.read_experiment_measures('lhs_1')
-results
-
-# %% [markdown]
-# We can collect the id's of the failed experiments programmatically. To collect all the experiments that are
-# missing any performance measure output, we can do this:
-
-# %%
-fails = results.isna().any(axis=1)
-failed_experiment_ids = fails.index[fails]
-failed_experiment_ids
-
-# %% [markdown]
-# When there is an error (thrown as a `subprocess.CalledProcessError`)
-# during the execution of a `FilesCoreModel`, the output from stdout
-# and stderr are written to log files in the archive location, instead
-# of having the legit model outputs written there.
-#
-# We can see the log output by reading in the log file, like this:
-
-# %%
-error_log = os.path.join(
-    fx.get_experiment_archive_path(9), 
-    'error.stdout.log'
-)
-with open(error_log, 'r') as stdout:
-    error_log_content = stdout.read()
-    
-print(error_log_content)
-
-# %% [markdown]
-# Here we see the log file is explicitly taunting us about 
-# randomly crashing the model run.  That's fine -- we wanted to
-# crash the execution randomly to show what to do in this event, cause it happens 
-# sometimes.  Maybe a disk filled up, or there is an intermittent
-# license problem that causes a failure one in a while.  If that's the
-# case and we can fix it just by re-running, awesome!
-#
-# We can load just the failed experiments to try them again.
-
-# %%
-failed_experiments = fx.read_experiment_parameters(experiment_ids=failed_experiment_ids)
-failed_experiments
-
-# %% [markdown]
-# Normally, there is a "short circuit" process that will
-# prevent re-running a core model experiment, instead the performance measure results
-# will simply be loaded from the database, which is typically much faster than
-# actually running the core model.  But, if the performance measures stored in the
-# database are junk, we will not want to trigger the short circuit system, and
-# actually run the full core model again.  To do so, we can disable the
-# short circuit like this:
-
-# %%
-fx.allow_short_circuit = False
-
-# %% [markdown]
-# Now we can re-run the failed experiment.  If it failed because of a transient error, 
-# e.g. a disk space problem that's been fixed, then perhaps we can simply re-run the model
-# and it will work.
-
-# %%
-fx.run_experiments(failed_experiments)
+# fx.run_experiments(design_name='lhs_1')
 
 # %% [markdown]
 # Much better!  Now we can see we have a more complete set of outputs, without the NaN's.  Hooray!
 
 # %%
-results = fx.db.read_experiment_all(scope_name=fx.scope.name, design_name='lhs_1')
-results
+# results = fx.db.read_experiment_all(scope_name=fx.scope.name, design_name='lhs_1')
+# results
 
 # %% [markdown]
 # ## Multiprocessing for Running Multiple Experiments
@@ -516,71 +440,6 @@ results
 # approach.  This can be accomplished by splitting a design of experiments over several
 # processes that you start manually, or by using an automatic multiprocessing library such as 
 # `dask.distributed`.
-
-# %% [markdown]
-# ### Running a Subset of Experiments Manually
-#
-# Suppose, for example, you wanted to distribute the workload of running experiments over several processes,
-# or even over several computers. If each process has file system access to the same TMIP-EMAT database of
-# experiments, we can orchestrate these experiments in parallel by manually splitting up the processes.
-#
-# To begin with, we'll have one process create a complete design of experiments, and save it to the 
-# database (which happens automatically here).
-
-# %%
-design2 = fx.design_experiments(design_name='lhs_2', n_samples=8, random_seed=42)
-
-# %% [markdown]
-# Then, we can create set up a copy of the same model in a different process, even on a different
-# machine, as long as we point back to the same original database file. This implies the different
-# process has access to the file system where the original file is stored. It is valuable to
-# read and write to the same database file, not just a copy of the file, as this will obviate the need
-# to sync the experimental data manually afterwards.  In this demo, we'll 
-# just create a new directory to work in, but we'll point to the database in the original directory.
-# Instead of allowing our model to implicitly create a new database file in the new directory, we'll
-# instantiate a SQLiteDB object pointing to the original database.
-
-# %%
-database_filename = fx.db.database_path
-db2 = emat.SQLiteDB(database_filename)
-
-# %% [markdown]
-# Now, `db2` is a `emat.SQLiteDB` object, which wraps a *new* connection to the *original* database.
-# Then, we'll pass that `db2` explicitly to the new `RoadTestFileModel` constructor, which will
-# create a complete copy of our model (other than the database) in a new directory.
-
-# %%
-fx2 = core_files_demo.RoadTestFileModel(db=db2)
-
-# %% [markdown]
-# To run a particular slice of a design of experiments, we need to load the experimental design first, 
-# and then pass that slice to the `run_experiments` function, instead of just giving the `design_name`.
-
-# %%
-design2 = fx.read_experiment_parameters('lhs_2')
-
-# %% [markdown]
-# For splitting the work across a number of similarly capable processes or machines,
-# the double-colon slice is convenient.  If, for example, you are splitting the work
-# over 4 computers, you can run each with slices `0::4`, `1::4`, `2::4`, and `3::4`.
-# This slices in skip-step manner, so slice below will run every 4th experiment
-# from the design, starting with experiment index 0 (i.e. the first one).  
-
-# %%
-fx2.run_experiments(design2.iloc[0::4])
-
-# %% [markdown]
-# Because we have linked the second model instance back to the same database, after
-# these experiments have finished we can access the results from the original `fx`
-# instance.
-
-# %%
-fx.read_experiment_measures('lhs_2')
-
-# %% [markdown]
-# It is important to note that for this manual multiprocessing technique to work, where
-# different processes run the model simultaneously, each process must be in a seperate 
-# Python instance (e.g. in seperate Jupyter notebooks, not in the same notebook as shown here).
 
 # %% [markdown]
 # ### Automatic Multiprocessing for Running Multiple Experiments
@@ -616,46 +475,25 @@ design3
 from emat.util.distributed import get_client # for multi-process operation
 fx.run_experiments(design=design3, evaluator=get_client())
 
-# %% [markdown]
-# ## Running without a Database
-#
-# It is possible to use the methods from TMIP-EMAT without connecting to a 
-# database at all, although this is not recommended.  The demo `RoadTestFileModel`
-# by default creates a database for you if one is not given, but it also 
-# allows explicitly disclaiming a database by setting the `db` argument to `False`.
+# %%
+os.path.exists(fx.get_experiment_archive_path(1)[:-6])
 
 # %%
-fx_nodb = core_files_demo.RoadTestFileModel(db=False)
-
-# %% [markdown]
-# Without a database, the methods still work, but the data is not stored anywhere persistent.
-# So, for example, the `design_experiments` will return a pandas DataFrame containing a 
-# design, but not store it.
-
-# %%
-design4 = fx_nodb.design_experiments(design_name='lhs_4', n_samples=8, random_seed=4)
-design4
-
-# %% [markdown]
-# If you try to run these experiments by giving the design name, it will fail,
-# because there is no database to query to convert that name into experimental
-# parameters.
-
-# %%
-try:
-    fx_nodb.run_experiments('lhs_4')
-except ValueError as error:
-    log.error(repr(error))
+fx.local_directory
 
 # %%
 
 # %%
-from emat.examples import road_test
 
 # %%
-_s, _db, _m = road_test()
 
 # %%
-_m.run_experiments(design3, db=False)
+
+# %%
+fx.archive_path = os.path.expanduser( "~/sandbox/ve8-temp/archive")
+fx.archive_path
+
+# %%
+fx.load_archived_measures(1)
 
 # %%
