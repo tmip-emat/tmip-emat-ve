@@ -411,6 +411,36 @@ class VERSPModel(FilesCoreModel):
 				join_norm(self.resolved_model_path, 'inputs', filename)
 			)
 
+	def _manipulate_transit(self, params):
+		"""
+		Prepare the income input file based on a template file.
+
+		Args:
+			params (dict):
+				The parameters for this experiment, including both
+				exogenous uncertainties and policy levers.
+		"""
+
+		computed_params = {}
+		computed_params['DRRevMi'] = params['Transit'] * 2381994.664
+		computed_params['MBRevMi'] = params['Transit'] * 3580237.203
+
+		with open(scenario_input('T','marea_transit_service.csv.template'), 'rt') as f:
+			y = f.read()
+
+		for n in computed_params.keys():
+			y = y.replace(
+				f"__EMAT_PROVIDES_{n}__",  # the token to replace
+				f"{computed_params[n]:.3f}",  # the value to replace it with (as a string)
+			)
+
+		out_filename = join_norm(
+			self.resolved_model_path, 'inputs', 'marea_transit_service.csv'
+		)
+		_logger.debug(f"writing updates to: {out_filename}")
+		with open(out_filename, 'wt') as f:
+			f.write(y)
+
 
 	def run(self):
 		"""

@@ -46,6 +46,14 @@ inputs:
             - base    # Maintain current distribution
             - growth  # Activity center growth, LU overlaps with HHsize + Population
 
+    Transit:
+        shortname: Transit
+        desc: Level of public transit service, relative to current
+        ptype: lever
+        dtype: float
+        default: 1.0
+        min: 0.5
+        max: 4.0
 
 outputs:
 
