@@ -70,8 +70,8 @@ inputs:
             ElectricCost: 0.80
 
     ElectricCost:
-        shortname: Fuel Cost
-        desc: Real electric price in 2010 USD per kwh
+        shortname: Electric Cost
+        desc: Real electricity price in 2010 USD per kwh
         ptype: uncertainty
         dtype: float
         default: 0.08
