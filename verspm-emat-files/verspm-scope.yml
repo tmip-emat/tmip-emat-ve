@@ -30,13 +30,16 @@ inputs:
 
     Bicycles:
         desc: Network improvements, incentives, and technologies that encourage bicycling and other light-weight vehicle travel.
-        ptype: lever
+        ptype: policy lever
         dtype: float
         default: 0.08
         min: 0.08
         max: 0.2
 
     LandUse:
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `L`, and uses one or
+        # the other explicitly, defining a categorical input.
         shortname: Land Use
         desc: Distribution of population and employment by place type.
         ptype: uncertainty
@@ -49,13 +52,15 @@ inputs:
     Transit:
         shortname: Transit
         desc: Level of public transit service, relative to current
-        ptype: lever
+        ptype: policy lever
         dtype: float
         default: 1.0
         min: 0.5
         max: 4.0
 
     FuelCost:
+        # This parameter manipulates only fuel cost, which in the
+        # VisionEval RSPM demo is only modified jointly with electricity cost.
         shortname: Fuel Cost
         desc: Real fuel price in 2010 USD per gallon
         ptype: uncertainty
@@ -70,6 +75,8 @@ inputs:
             ElectricCost: 0.80
 
     ElectricCost:
+        # This parameter manipulates only electricity cost, which in the
+        # VisionEval RSPM demo is only modified jointly with fuel cost.
         shortname: Electric Cost
         desc: Real electricity price in 2010 USD per kwh
         ptype: uncertainty
@@ -82,6 +89,76 @@ inputs:
             peak: 0.10
         corr:
             FuelCost: 0.80
+
+    TechMix:
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `F`, and generates
+        # a single set of input files that is a linearly interpolated
+        # mixture between the two, varying from completely "1" at value 0.0
+        # to completely "2" at value 1.0.
+        shortname: Technology Mix
+        desc: Vehicle technology mix and carbon intensity of fuels
+        ptype: uncertainty
+        dtype: float
+        default: 0.0
+        min: 0.0
+        max: 1.0
+
+    Parking:
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `P`, and generates
+        # a single set of input files that is a linearly interpolated
+        # mixture between the two, varying from completely "1" at value 0.0
+        # to completely "2" at value 1.0.
+        shortname: Parking
+        desc: Extent of and charges for priced parking
+        ptype: policy lever
+        dtype: float
+        default: 0.0
+        min: 0.0     # Current extent and daily fee
+        max: 1.0     # Increase parking cost by 100% and proportion charted by 10%.
+
+    DemandManagement:
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `D`, and generates
+        # a single set of input files that is a linearly interpolated
+        # mixture between the two, varying from completely "1" at value 0.0
+        # to completely "2" at value 1.0.
+        shortname: Demand Mgmt
+        desc: Programs and incentives which encourage people to drive less including ridesharing, van pooling, telecommuting, and transit subsidies
+        ptype: policy lever
+        dtype: float
+        default: 0.0
+        min: 0.0     # Current
+        max: 1.0     # Increase the proportion by 10%
+
+    VehicleCharacteristics:
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `V`, and generates
+        # a single set of input files that is a linearly interpolated
+        # mixture between the two, varying from completely "1" at value 0.0
+        # to completely "2" at value 1.0.
+        shortname: Vehicle Characteristics
+        desc: Proportions of light trucks and average vehicle age
+        ptype: uncertainty
+        dtype: float
+        default: 0.0
+        min: 0.0     # Current
+        max: 1.0     # Increase the proportion by 10%
+
+
+    # VehicleTravelCost: # C  [3 scenarios, 3 files]
+
+    DrivingEfficiency:
+        shortname: Driving Efficiency
+        desc: Driving efficiency by increasing implementation of ITS
+        ptype: policy lever
+        dtype: float
+        default: 0.0
+        min: 0.0     # Current
+        max: 1.0     # Fully implemented ITS
+
+
 
 outputs:
 

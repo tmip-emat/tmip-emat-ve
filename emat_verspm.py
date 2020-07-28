@@ -306,6 +306,11 @@ class VERSPModel(FilesCoreModel):
 		self._manipulate_land_use(params)
 		self._manipulate_transit(params)
 		self._manipulate_fuel_cost(params)
+		self._manipulate_technology_mix(params)
+		self._manipulate_parking(params)
+		self._manipulate_demand(params)
+		self._manipulate_vehicle_characteristics(params)
+		self._manipulate_driving_efficiency(params)
 		_logger.info("VERSPM SETUP complete")
 
 	def _manipulate_model_parameters_json(self, params):
@@ -473,6 +478,66 @@ class VERSPModel(FilesCoreModel):
 		_logger.debug(f"writing updates to: {out_filename}")
 		with open(out_filename, 'wt') as f:
 			f.write(y)
+
+	def _manipulate_technology_mix(self, params, ):
+		return self._manipulate_by_mixture(params, 'TechMix', 'F',)
+
+	def _manipulate_parking(self, params, ):
+		return self._manipulate_by_mixture(params, 'Parking', 'P',)
+
+	def _manipulate_demand(self, params, ):
+		return self._manipulate_by_mixture(params, 'DemandManagement', 'D',)
+
+	def _manipulate_vehicle_characteristics(self, params, ):
+		return self._manipulate_by_mixture(params, 'VehicleCharacteristics', 'V',)
+
+	def _manipulate_driving_efficiency(self, params, ):
+		return self._manipulate_by_mixture(params, 'DrivingEfficiency', 'E',)
+
+	def _manipulate_by_mixture(self, params, weight_param, ve_scenario_dir, no_mix_cols=('Year', 'Geo',)):
+
+		weight_2 = params[weight_param]
+		weight_1 = 1.0-weight_2
+
+		# Gather list of all files in directory "1", and confirm they
+		# are also in directory "2"
+		filenames = []
+		for i in os.scandir(scenario_input(ve_scenario_dir,'1')):
+			if i.is_file():
+				filenames.append(i.name)
+				f2 = scenario_input(ve_scenario_dir,'2', i.name)
+				if not os.path.exists(f2):
+					raise FileNotFoundError(f2)
+
+		for filename in filenames:
+			df1 = pd.read_csv(scenario_input(ve_scenario_dir,'1',filename))
+			df2 = pd.read_csv(scenario_input(ve_scenario_dir,'2',filename))
+
+			float_mix_cols = list(df1.select_dtypes('float').columns)
+			for j in no_mix_cols:
+				if j in float_mix_cols:
+					float_mix_cols.remove(j)
+
+			if float_mix_cols:
+				df1_float = df1[float_mix_cols]
+				df2_float = df2[float_mix_cols]
+				df1[float_mix_cols] = df1_float * weight_1 + df2_float * weight_2
+
+			int_mix_cols = list(df1.select_dtypes('int').columns)
+			for j in no_mix_cols:
+				if j in int_mix_cols:
+					int_mix_cols.remove(j)
+
+			if int_mix_cols:
+				df1_int = df1[int_mix_cols]
+				df2_int = df2[int_mix_cols]
+				df_int_mix = df1_int * weight_1 + df2_int * weight_2
+				df1[int_mix_cols] = np.round(df_int_mix).astype(int)
+
+			out_filename = join_norm(
+				self.resolved_model_path, 'inputs', filename
+			)
+			df1.to_csv(out_filename, index=False, float_format="%.5f")
 
 
 	def run(self):
