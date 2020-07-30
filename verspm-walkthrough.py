@@ -54,7 +54,7 @@ import emat_verspm
 # Let's initialize a database file to store results.
 
 # %%
-database_path = os.path.expanduser("~/sandbox/ve-rspm-20200727.db")
+database_path = os.path.expanduser("~/EMAT-VE/ve-rspm-20200728.db")
 initialize = not os.path.exists(database_path)
 db = emat.SQLiteDB(database_path, initialize=initialize)
 
@@ -64,6 +64,12 @@ db = emat.SQLiteDB(database_path, initialize=initialize)
 
 # %%
 fx = emat_verspm.VERSPModel(db=db)
+
+# %% [markdown]
+# We'll run a reference experiment with all default values to establish a baseline set of results.
+
+# %%
+fx.run_reference_experiment()
 
 # %% [markdown]
 # ## Single Run Operation for Development and Debugging
@@ -154,7 +160,7 @@ os.path.join(fx.master_directory.name, 'VERSPM', 'output')
 # There is a `post_process` step that is separate from the `run` step.
 #
 # For VERSPM, the post-processing replicates the calculations needed to
-# create the same summary performance measures as the `R` version of
+# create the same summary performance measures as the _R_ version of
 # VisionEval does when run with scenarios.
 
 # %%
@@ -164,26 +170,12 @@ fx.post_process()
 # ### load-measures
 #
 # The `load_measures` method is the place to actually reach into
-# files in the core model's run results and extract performance
+# files in the RSPM's run results and extract performance
 # measures, returning a dictionary of key-value pairs for the 
-# various performance measures. It takes an optional list giving a 
-# subset of performance measures to load, and like the `post_process` 
-# method also can be pointed at an archive location instead of loading 
-# measures from the local working directory (which is the default).
-# The `load_measures` method should not do any post-processing
-# of results (i.e. it should read from but not write to the model
-# outputs directory).
+# various performance measures.  
 
 # %%
 fx.load_measures()
-
-# %% [markdown]
-# You may note that the implementation of `RoadTestFileModel` in the `core_files_demo` module
-# does not actually include a `load_measures` method itself, but instead inherits this method
-# from the `FilesCoreModel` superclass. The instructions on how to actually find the relevant
-# performance measures for this file are instead loaded into table parsers, which are defined
-# in the `RoadTestFileModel.__init__` constructor.  There are [details and illustrations
-# of how to write and use parsers in the file parsing examples page of the TMIP-EMAT documentation.](https://tmip-emat.github.io/source/emat.models/table_parse_example.html)
 
 # %% [markdown]
 # ### archive
@@ -204,12 +196,6 @@ fx.get_experiment_archive_path(parameters=params)
 # %%
 fx.archive(params)
 
-# %%
-show_dir(fx.local_directory)
-
-# %%
-STOP
-
 # %% [markdown]
 # It is permissible, but not required, to simply copy the entire contents of the 
 # former to the latter, as is done in this example. However, if the current active model
@@ -221,7 +207,7 @@ STOP
 # experiments archive directory.
 
 # %% [markdown]
-# ## Normal Operation for Running Multiple Experiments
+# ## Single Thread Operation for Running Multiple Experiments
 
 # %% [markdown]
 # For this demo, we'll create a design of experiments with only 3 experiments.
@@ -254,7 +240,7 @@ fx.run_experiments(design1)
 # `dask.distributed`.
 
 # %%
-design3 = fx.design_experiments(design_name='lhs_a', random_seed=3, n_samples=6)
+design3 = fx.design_experiments(random_seed=3, sampler='ulhs')
 design3
 
 # %% [markdown]
@@ -273,6 +259,6 @@ design3
 from emat.util.distributed import get_client # for multi-process operation
 
 # %%
-fx.run_experiments(design=design3, evaluator=get_client(n_workers=6))
+fx.run_experiments(design=design3, evaluator=get_client(n_workers=8))
 
 # %%

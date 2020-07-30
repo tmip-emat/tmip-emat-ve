@@ -311,6 +311,7 @@ class VERSPModel(FilesCoreModel):
 		self._manipulate_demand(params)
 		self._manipulate_vehicle_characteristics(params)
 		self._manipulate_driving_efficiency(params)
+		self._manipulate_vehicle_travel_cost(params)
 		_logger.info("VERSPM SETUP complete")
 
 	def _manipulate_model_parameters_json(self, params):
@@ -392,6 +393,23 @@ class VERSPModel(FilesCoreModel):
 		with open(out_filename, 'wt') as f:
 			f.write(y)
 
+	def _manipulate_by_categorical_drop_in(self, params, cat_param, cat_mapping, ve_scenario_dir):
+		"""
+		Copy in the relevant input files.
+
+		Args:
+			params (dict):
+				The parameters for this experiment, including both
+				exogenous uncertainties and policy levers.
+		"""
+		scenario_dir = cat_mapping.get(params[cat_param])
+		for i in os.scandir(scenario_input(ve_scenario_dir,scenario_dir)):
+			if i.is_file():
+				shutil.copyfile(
+					scenario_input(ve_scenario_dir,scenario_dir,i.name),
+					join_norm(self.resolved_model_path, 'inputs', i.name)
+				)
+
 	def _manipulate_land_use(self, params):
 		"""
 		Copy in the relevant the land use input files.
@@ -401,23 +419,19 @@ class VERSPModel(FilesCoreModel):
 				The parameters for this experiment, including both
 				exogenous uncertainties and policy levers.
 		"""
-		lu_files = [
-			'azone_gq_pop_by_age.csv',
-			'azone_hh_pop_by_age.csv',
-			'azone_hhsize_targets.csv',
-			'bzone_urban_du_proportions.csv',
-		]
+		cat_mapping = {
+			'base': '1',
+			'growth': '2',
+		}
+		return self._manipulate_by_categorical_drop_in(params, 'LandUse', cat_mapping, 'L')
 
-		if params['LandUse'] == 'base':
-			i = '1'
-		else:
-			i = '2'
-
-		for filename in lu_files:
-			shutil.copyfile(
-				scenario_input('L',i,filename),
-				join_norm(self.resolved_model_path, 'inputs', filename)
-			)
+	def _manipulate_vehicle_travel_cost(self, params):
+		cat_mapping = {
+			'base': '1',
+			'steady ownership cost': '2',
+			'pay-per-mile insurance and higher cost': '3',
+		}
+		return self._manipulate_by_categorical_drop_in(params, 'VehicleTravelCost', cat_mapping, 'C')
 
 	def _manipulate_transit(self, params):
 		"""

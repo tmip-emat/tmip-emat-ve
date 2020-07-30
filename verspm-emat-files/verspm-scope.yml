@@ -8,6 +8,10 @@ scope:
 inputs:
 
     ValueOfTime:
+        # MANIPULATION
+        # This parameter manipulates an existing model file to edit the
+        # relevant value directly.  It is not a value that is varied in the
+        # normal RSPM scenario manager.
         shortname: Value of Time
         ptype: uncertainty
         dtype: int
@@ -20,6 +24,10 @@ inputs:
             peak: 16
 
     Income:
+        # INJECTION
+        # This parameter uses a template file to create a new input file
+        # in the `I` group by injecting the relevant values directly
+        # into the file being manipulated.
         shortname: HH Income
         ptype: uncertainty
         dtype: int
@@ -27,8 +35,15 @@ inputs:
         default: 46367
         min: 43334    # for GQIncomePC 10000
         max: 49400    # for GQIncomePC 11400
+        dist:
+            name: pert
+            peak: 46367
 
     Bicycles:
+        # INJECTION
+        # This parameter uses a template file to create a new input file
+        # in the `B` group by injecting the relevant value directly
+        # into the file being manipulated.
         desc: Network improvements, incentives, and technologies that encourage bicycling and other light-weight vehicle travel.
         ptype: policy lever
         dtype: float
@@ -37,6 +52,7 @@ inputs:
         max: 0.2
 
     LandUse:
+        # CATEGORICAL
         # This parameter accepts the same two sets of scenario input files
         # as the usual VisionEval scenario manager for `L`, and uses one or
         # the other explicitly, defining a categorical input.
@@ -50,6 +66,10 @@ inputs:
             - growth  # Activity center growth, LU overlaps with HHsize + Population
 
     Transit:
+        # INJECTION
+        # This parameter uses a template file to create a new input file
+        # in the `T` group by injecting the relevant values directly
+        # into the file being manipulated.
         shortname: Transit
         desc: Level of public transit service, relative to current
         ptype: policy lever
@@ -59,8 +79,13 @@ inputs:
         max: 4.0
 
     FuelCost:
-        # This parameter manipulates only fuel cost, which in the
-        # VisionEval RSPM demo is only modified jointly with electricity cost.
+        # INJECTION
+        # This parameter uses a template file to create a new input file
+        # in the `G` group by injecting the fuel cost directly
+        # into the file being manipulated. This parameter manipulates only
+        # fuel cost, which in the VisionEval RSPM demo is only modified
+        # jointly with electricity cost, but for EMAT can be modified
+        # independently.
         shortname: Fuel Cost
         desc: Real fuel price in 2010 USD per gallon
         ptype: uncertainty
@@ -75,8 +100,13 @@ inputs:
             ElectricCost: 0.80
 
     ElectricCost:
-        # This parameter manipulates only electricity cost, which in the
-        # VisionEval RSPM demo is only modified jointly with fuel cost.
+        # INJECTION
+        # This parameter uses a template file to create a new input file
+        # in the `G` group by injecting the fuel cost directly
+        # into the file being manipulated. This parameter manipulates only
+        # electricity cost, which in the VisionEval RSPM demo is only
+        # modified jointly with fuel cost, but for EMAT can be modified
+        # independently.
         shortname: Electric Cost
         desc: Real electricity price in 2010 USD per kwh
         ptype: uncertainty
@@ -91,6 +121,7 @@ inputs:
             FuelCost: 0.80
 
     TechMix:
+        # MIXTURE
         # This parameter accepts the same two sets of scenario input files
         # as the usual VisionEval scenario manager for `F`, and generates
         # a single set of input files that is a linearly interpolated
@@ -101,10 +132,14 @@ inputs:
         ptype: uncertainty
         dtype: float
         default: 0.0
-        min: 0.0
-        max: 1.0
+        min: 0.0  # Baseline vehicle technology mix
+        max: 1.0  # Increased percentage of electric vehicles in household and commercial setting by 20%
+        dist:
+            name: pert
+            peak: 0.3
 
     Parking:
+        # MIXTURE
         # This parameter accepts the same two sets of scenario input files
         # as the usual VisionEval scenario manager for `P`, and generates
         # a single set of input files that is a linearly interpolated
@@ -119,6 +154,7 @@ inputs:
         max: 1.0     # Increase parking cost by 100% and proportion charted by 10%.
 
     DemandManagement:
+        # MIXTURE
         # This parameter accepts the same two sets of scenario input files
         # as the usual VisionEval scenario manager for `D`, and generates
         # a single set of input files that is a linearly interpolated
@@ -133,6 +169,7 @@ inputs:
         max: 1.0     # Increase the proportion by 10%
 
     VehicleCharacteristics:
+        # MIXTURE
         # This parameter accepts the same two sets of scenario input files
         # as the usual VisionEval scenario manager for `V`, and generates
         # a single set of input files that is a linearly interpolated
@@ -145,11 +182,32 @@ inputs:
         default: 0.0
         min: 0.0     # Current
         max: 1.0     # Increase the proportion by 10%
+        dist:
+            name: pert
+            peak: 0.05
 
-
-    # VehicleTravelCost: # C  [3 scenarios, 3 files]
+    VehicleTravelCost:
+        # CATEGORICAL
+        # This parameter accepts the same three sets of scenario input files
+        # as the usual VisionEval scenario manager for `C`, and uses one of them
+        # explicitly, defining a categorical input.
+        shortname: Vehicle Travel Cost
+        desc: Combination of fuel prices and charges to pay for roadway costs and possibly externalities
+        ptype: policy lever
+        dtype: cat
+        default: base
+        values:
+            - base
+            - steady ownership cost
+            - pay-per-mile insurance and higher cost
 
     DrivingEfficiency:
+        # MIXTURE
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `E`, and generates
+        # a single set of input files that is a linearly interpolated
+        # mixture between the two, varying from completely "1" at value 0.0
+        # to completely "2" at value 1.0.
         shortname: Driving Efficiency
         desc: Driving efficiency by increasing implementation of ITS
         ptype: policy lever
