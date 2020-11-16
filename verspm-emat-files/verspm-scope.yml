@@ -200,6 +200,10 @@ inputs:
             - base
             - steady ownership cost
             - pay-per-mile insurance and higher cost
+        abbrev:
+            pay-per-mile insurance and higher cost: PPM
+            steady ownership cost: Steady
+            base: Base
 
     DrivingEfficiency:
         # MIXTURE

@@ -132,7 +132,7 @@ class VERSPModel(FilesCoreModel):
 
 	"""
 
-	def __init__(self, db=None, db_filename="verspm.db"):
+	def __init__(self, db=None, db_filename="verspm.db", scope=None):
 
 		# Make a temporary directory for this instance.
 		self.master_directory = tempfile.TemporaryDirectory()
@@ -148,7 +148,8 @@ class VERSPModel(FilesCoreModel):
 				join_norm(cwd, f"verspm-{i}.yml"),
 			)
 
-		scope = Scope(join_norm(cwd, "verspm-scope.yml"))
+		if scope is None:
+			scope = Scope(join_norm(cwd, "verspm-scope.yml"))
 
 		if db is None:
 			if os.path.exists(db_filename):
