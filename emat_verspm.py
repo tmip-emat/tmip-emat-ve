@@ -588,6 +588,21 @@ class VERSPModel(FilesCoreModel):
 		else:
 			cmd = 'Rscript'
 
+		# Write a small script that will run the model under VisionEval 2.0
+		with open(join_norm(self.local_directory, "verspm_runner.R"), "wt") as r_script:
+			r_script.write(f"""
+			require(visioneval)
+			source("{join_norm(self.config['r_runtime_path'], 'VisionEval.R')}", chdir = TRUE)
+			thismodel <- openModel("{join_norm(self.local_directory, self.model_path)}")
+			thismodel$run()
+			thismodel$extract()
+			thismodel$query(Geography=c(Type='Marea',Value='RVMPO'))
+			""")
+
+		r_lib = self.config['r_library_path']
+		with open(join_norm(self.local_directory, '.Rprofile'), 'wt') as rprof:
+			rprof.write(f'.libPaths("{r_lib}")\n')
+
 		# The subprocess.run command runs a command line tool. The
 		# name of the command line tool, plus all the command line arguments
 		# for the tool, are given as a list of strings, not one string.
@@ -596,8 +611,8 @@ class VERSPModel(FilesCoreModel):
 		# will capture both stdout and stderr from the command line tool, and
 		# make these available in the result to facilitate debugging.
 		self.last_run_result = subprocess.run(
-			[cmd, 'run_model.R'],
-			cwd=join_norm(self.local_directory, self.model_path),
+			[cmd, 'verspm_runner.R'],
+			cwd=self.local_directory,
 			capture_output=True,
 		)
 		if self.last_run_result.returncode:
@@ -607,6 +622,22 @@ class VERSPModel(FilesCoreModel):
 				self.last_run_result.stdout,
 				self.last_run_result.stderr,
 			)
+		else:
+			with open(join_norm(self.local_directory, self.model_path, 'output', 'stdout.log'), 'wb') as slog:
+				slog.write(self.last_run_result.stdout)
+
+		# VisionEval Version 2 appends timestamps to output filenames,
+		# but because we're running in a temporary directory, we can
+		# strip them down to standard filenames.
+		import re, glob
+		renamer = re.compile(r"(.*)_202[0-9]-[0-9]+-[0-9]+_[0-9]+(\.csv)")
+		_logger.info("VERSPM RUN renaming files")
+		for outfile in glob.glob(join_norm(self.local_directory, self.model_path, 'output', '*.csv')):
+			_logger.info(f"VERSPM RUN renaming: {outfile}")
+			if renamer.match(outfile):
+				newname = renamer.sub(r"\1\2", outfile)
+				_logger.info(f"     to: {newname}")
+				os.rename(outfile, newname)
 
 		_logger.info("VERSPM RUN complete")
 
@@ -688,12 +719,18 @@ class VERSPModel(FilesCoreModel):
 
 		if output_path is None:
 			output_path = join_norm(self.local_directory, self.model_path, self.rel_output_path)
+		# marea_2038 = pd.read_csv(
+		# 	join_norm(output_path, 'Marea.csv'),
+		# ).query("Year==2038")
+		# household_2038 = pd.read_csv(
+		# 	join_norm(output_path, 'Household.csv'),
+		# ).query("Year==2038")
 		marea_2038 = pd.read_csv(
-			join_norm(output_path, 'Marea.csv'),
-		).query("Year==2038")
+			join_norm(output_path, 'Marea_2038_1.csv'),
+		)
 		household_2038 = pd.read_csv(
-			join_norm(output_path, 'Household.csv'),
-		).query("Year==2038")
+			join_norm(output_path, 'Household_2038_1.csv'),
+		)
 
 		population = household_2038['HhSize'].sum()
 		GHGReduction = 0
@@ -702,8 +739,8 @@ class VERSPModel(FilesCoreModel):
 		AirPollutionEm = household_2038['DailyCO2e'].sum()
 		FuelUse = (
 			household_2038['DailyGGE'].sum()
-			+ marea_2038['ComSvcUrbanGGE_GGE.DAY_'].sum()
-			+ marea_2038['ComSvcNonUrbanGGE_GGE.DAY_'].sum()
+			+ marea_2038['ComSvcUrbanGGE'].sum()
+			+ marea_2038['ComSvcNonUrbanGGE'].sum()
 		) * 365
 		TruckDelay = 0
 		OperationCost = household_2038['AveVehCostPM'] * household_2038['Dvmt']

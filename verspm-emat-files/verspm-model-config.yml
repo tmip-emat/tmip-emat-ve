@@ -1,7 +1,8 @@
 
 model_path: ./VERSPM
-model_archive: ~/sandbox/VisionEval-Archive
-model_source: ~/sandbox/VisionEval-Dev/built/visioneval/4.0.2/runtime/models
+model_archive: ~/vision-eval/VisionEval-Archive
+model_source: ~/vision-eval/VisionEval-Dev/built/visioneval/4.0.3/runtime/models/VERSPM
+
 rel_output_path: ./output
-r_library_path: ~/sandbox/VisionEval-Dev/built/visioneval/4.0.2/ve-lib
-r_runtime_path: ~/sandbox/VisionEval-Dev/built/visioneval/4.0.2/runtime
+r_library_path: ~/vision-eval/VisionEval-Dev/built/visioneval/4.0.3/ve-lib
+r_runtime_path: ~/vision-eval/VisionEval-Dev/built/visioneval/4.0.3/runtime

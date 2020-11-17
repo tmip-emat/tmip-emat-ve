@@ -7,7 +7,6 @@ cat('run_model.R: script entered\n')
 #Load libraries
 #--------------
 library(visioneval)
-import::here(ve.export,.from="~/sandbox/VisionEval-Dev/built/visioneval/4.0.2/runtime/tools/exporter.R")
 
 cat('run_model.R: library visioneval loaded\n')
 
@@ -71,4 +70,3 @@ for(Year in getYears()) {
 }
 cat('run_model.R: run complete.\n')
 
-ve.export(overwrite=TRUE)
