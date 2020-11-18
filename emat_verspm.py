@@ -13,7 +13,7 @@ import json
 from emat import Scope
 from emat import SQLiteDB
 from emat.model.core_files import FilesCoreModel
-from emat.model.core_files.parsers import TableParser, MappingParser, loc, key
+from emat.model.core_files.parsers import TableParser, MappingParser, loc, key, iloc
 
 import logging
 _logger = logging.getLogger("EMAT.VERSPM")
@@ -195,19 +195,32 @@ class VERSPModel(FilesCoreModel):
 
 		# Add parsers to instruct the load_measures function
 		# how to parse the outputs and get the measure values.
+
+		# ComputedMeasures.json
+		instructions = {}
+		for measure in scope.get_measures():
+			if measure.parser and measure.parser.get('file') == 'ComputedMeasures.json':
+				instructions[measure.name] = key[measure.parser.get('key')]
 		self.add_parser(
 			MappingParser(
 				"ComputedMeasures.json",
-				{
-					'GHGReduction'        : key['GHGReduction'],
-					'DVMTPerCapita'       : key['DVMTPerCapita'],
-					'WalkTravelPerCapita' : key['WalkTravelPerCapita'],
-					'TruckDelay'          : key['TruckDelay'],
-					'AirPollutionEm'      : key['AirPollutionEm'],
-					'FuelUse'             : key['FuelUse'],
-					'VehicleCost'         : key['VehicleCost'],
-					'VehicleCostLow'      : key['VehicleCostLow'],
-				}
+				instructions,
+			)
+		)
+
+		# Query-Spec Measures
+		instructions = {}
+		for measure in scope.get_measures():
+			if measure.parser and measure.parser.get('file') == 'Measures_VERSPM_2010,2038_Marea=RVMPO.csv':
+				if measure.parser.get('loc'):
+					instructions[measure.name] = loc[(str(j) for j in measure.parser.get('loc'))]
+				elif measure.parser.get('eval'):
+					instructions[measure.name] = eval(measure.parser.get('eval'))
+		self.add_parser(
+			TableParser(
+				"Measures_VERSPM_2010,2038_Marea=RVMPO.csv",
+				instructions,
+				index_col=0,
 			)
 		)
 
@@ -631,12 +644,12 @@ class VERSPModel(FilesCoreModel):
 		# strip them down to standard filenames.
 		import re, glob
 		renamer = re.compile(r"(.*)_202[0-9]-[0-9]+-[0-9]+_[0-9]+(\.csv)")
-		_logger.info("VERSPM RUN renaming files")
+		_logger.debug("VERSPM RUN renaming files")
 		for outfile in glob.glob(join_norm(self.local_directory, self.model_path, 'output', '*.csv')):
-			_logger.info(f"VERSPM RUN renaming: {outfile}")
+			_logger.debug(f"VERSPM RUN renaming: {outfile}")
 			if renamer.match(outfile):
 				newname = renamer.sub(r"\1\2", outfile)
-				_logger.info(f"     to: {newname}")
+				_logger.debug(f"     to: {newname}")
 				os.rename(outfile, newname)
 
 		_logger.info("VERSPM RUN complete")
@@ -800,7 +813,7 @@ class VERSPModel(FilesCoreModel):
 				if db is not None:
 					experiment_id = db.get_experiment_id(self.scope.name, None, params)
 			model_results_path = self.get_experiment_archive_path(experiment_id)
-		zipname = model_results_path.rstrip("/\\")
+		zipname = os.path.join(model_results_path, 'run_archive')
 		_logger.info(
 			f"VERSPM ARCHIVE\n"
 			f" from: {join_norm(self.local_directory, self.model_path, self.rel_output_path)}\n"
