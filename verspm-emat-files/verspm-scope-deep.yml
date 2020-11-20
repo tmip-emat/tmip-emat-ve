@@ -1,0 +1,1390 @@
+---
+# VERSPM Scope Definition
+
+scope:
+    name: VERSPM
+    desc: VisionEval Regional Strategic Planning Model
+
+inputs:
+
+    ValueOfTime:
+        # MANIPULATION
+        # This parameter manipulates an existing model file to edit the
+        # relevant value directly.  It is not a value that is varied in the
+        # normal RSPM scenario manager.
+        shortname: Value of Time
+        ptype: uncertainty
+        dtype: int
+        desc: Value of a unit of travel time, base cost year dollars per hour
+        default: 16
+        min: 10
+        max: 20
+
+    Income:
+        # INJECTION
+        # This parameter uses a template file to create a new input file
+        # in the `I` group by injecting the relevant values directly
+        # into the file being manipulated.
+        shortname: HH Income
+        ptype: uncertainty
+        dtype: int
+        desc: Household Income per Capita in Year 2038 (GQ Income is 3/13ths)
+        default: 46367
+        min: 43334    # for GQIncomePC 10000
+        max: 49400    # for GQIncomePC 11400
+
+    Bicycles:
+        # INJECTION
+        # This parameter uses a template file to create a new input file
+        # in the `B` group by injecting the relevant value directly
+        # into the file being manipulated.
+        desc: Network improvements, incentives, and technologies that encourage
+          bicycling and other light-weight vehicle travel.
+        ptype: policy lever
+        dtype: float
+        default: 0.08
+        min: 0.08
+        max: 0.2
+
+    LandUse:
+        # CATEGORICAL
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `L`, and uses one or
+        # the other explicitly, defining a categorical input.
+        shortname: Land Use
+        desc: Distribution of population and employment by place type.
+        ptype: uncertainty
+        dtype: cat
+        default: base
+        values:
+            - base    # Maintain current distribution
+            - growth  # Activity center growth, LU overlaps with HHsize + Population
+
+    Transit:
+        # INJECTION
+        # This parameter uses a template file to create a new input file
+        # in the `T` group by injecting the relevant values directly
+        # into the file being manipulated.
+        shortname: Transit
+        desc: Level of public transit service, relative to current
+        ptype: policy lever
+        dtype: float
+        default: 1.0
+        min: 0.5
+        max: 4.0
+
+    FuelCost:
+        # INJECTION
+        # This parameter uses a template file to create a new input file
+        # in the `G` group by injecting the fuel cost directly
+        # into the file being manipulated. This parameter manipulates only
+        # fuel cost, which in the VisionEval RSPM demo is only modified
+        # jointly with electricity cost, but for EMAT can be modified
+        # independently.
+        shortname: Fuel Cost
+        desc: Real fuel price in 2010 USD per gallon
+        ptype: uncertainty
+        dtype: float
+        default: 2.43
+        min: 1.50
+        max: 11.50
+        corr:
+            ElectricCost: 0.80
+
+    ElectricCost:
+        # INJECTION
+        # This parameter uses a template file to create a new input file
+        # in the `G` group by injecting the fuel cost directly
+        # into the file being manipulated. This parameter manipulates only
+        # electricity cost, which in the VisionEval RSPM demo is only
+        # modified jointly with fuel cost, but for EMAT can be modified
+        # independently.
+        shortname: Electric Cost
+        desc: Real electricity price in 2010 USD per kwh
+        ptype: uncertainty
+        dtype: float
+        default: 0.08
+        min: 0.06
+        max: 0.416
+        corr:
+            FuelCost: 0.80
+
+    TechMix:
+        # MIXTURE
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `F`, and generates
+        # a single set of input files that is a linearly interpolated
+        # mixture between the two, varying from completely "1" at value 0.0
+        # to completely "2" at value 1.0.
+        shortname: Technology Mix
+        desc: Vehicle technology mix and carbon intensity of fuels
+        ptype: uncertainty
+        dtype: float
+        default: 0.0
+        min: 0.0  # Baseline vehicle technology mix
+        max: 1.0  # Increased percentage of electric vehicles in household and commercial setting by 20%
+
+    Parking:
+        # MIXTURE
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `P`, and generates
+        # a single set of input files that is a linearly interpolated
+        # mixture between the two, varying from completely "1" at value 0.0
+        # to completely "2" at value 1.0.
+        shortname: Parking
+        desc: Extent of and charges for priced parking
+        ptype: policy lever
+        dtype: float
+        default: 0.0
+        min: 0.0     # Current extent and daily fee
+        max: 1.0     # Increase parking cost by 100% and proportion charted by 10%.
+
+    DemandManagement:
+        # MIXTURE
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `D`, and generates
+        # a single set of input files that is a linearly interpolated
+        # mixture between the two, varying from completely "1" at value 0.0
+        # to completely "2" at value 1.0.
+        shortname: Demand Mgmt
+        desc: Programs and incentives which encourage people to drive less including
+          ridesharing, van pooling, telecommuting, and transit subsidies
+        ptype: policy lever
+        dtype: float
+        default: 0.0
+        min: 0.0     # Current
+        max: 1.0     # Increase the proportion by 10%
+
+    VehicleCharacteristics:
+        # MIXTURE
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `V`, and generates
+        # a single set of input files that is a linearly interpolated
+        # mixture between the two, varying from completely "1" at value 0.0
+        # to completely "2" at value 1.0.
+        shortname: Vehicle Characteristics
+        desc: Proportions of light trucks and average vehicle age
+        ptype: uncertainty
+        dtype: float
+        default: 0.0
+        min: 0.0     # Current
+        max: 1.0     # Increase the proportion by 10%
+
+    VehicleTravelCost:
+        # CATEGORICAL
+        # This parameter accepts the same three sets of scenario input files
+        # as the usual VisionEval scenario manager for `C`, and uses one of them
+        # explicitly, defining a categorical input.
+        shortname: Vehicle Travel Cost
+        desc: Combination of fuel prices and charges to pay for roadway costs
+          and possibly externalities
+        ptype: policy lever
+        dtype: cat
+        default: base
+        values:
+            - base
+            - steady ownership cost
+            - pay-per-mile insurance and higher cost
+        abbrev:
+            pay-per-mile insurance and higher cost: PPM
+            steady ownership cost: Steady
+            base: Base
+
+    DrivingEfficiency:
+        # MIXTURE
+        # This parameter accepts the same two sets of scenario input files
+        # as the usual VisionEval scenario manager for `E`, and generates
+        # a single set of input files that is a linearly interpolated
+        # mixture between the two, varying from completely "1" at value 0.0
+        # to completely "2" at value 1.0.
+        shortname: Driving Efficiency
+        desc: Driving efficiency by increasing implementation of ITS
+        ptype: policy lever
+        dtype: float
+        default: 0.0
+        min: 0.0     # Current
+        max: 1.0     # Fully implemented ITS
+
+
+
+outputs:
+
+    DVMTPerCapita:
+        shortname: Daily VMT Per Capita
+        kind: info
+        parser:
+            file: ComputedMeasures.json
+            key: DVMTPerCapita
+    WalkTravelPerCapita:
+        shortname: Daily Walk Travel Per Capita
+        kind: info
+        parser:
+            file: ComputedMeasures.json
+            key: WalkTravelPerCapita
+    AirPollutionEm:
+        shortname: Air Pollution
+        kind: info
+        parser:
+            file: ComputedMeasures.json
+            key: AirPollutionEm
+    FuelUse:
+        shortname: Annual Fuel Use
+        kind: info
+        parser:
+            file: ComputedMeasures.json
+            key: FuelUse
+    VehicleCost:
+        shortname: Vehicle Cost / Income
+        kind: info
+        parser:
+            file: ComputedMeasures.json
+            key: VehicleCost
+    VehicleCostLow:
+        shortname: Low Income Veh. Cost / Income
+        kind: info
+        parser:
+            file: ComputedMeasures.json
+            key: VehicleCostLow
+
+
+    UrbanHhDvmt:
+        kind: info
+        desc: Daily vehicle miles traveled by households residing in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhDvmt
+            - 2038
+    UrbanHhDvmt_Az:
+        kind: info
+        desc: Daily vehicle miles traveled by households residing in the urban area
+            in RVMPO county
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhDvmt_Az
+            - 2038
+    UrbanHhDvmt_AzMx:
+        kind: info
+        desc: Daily vehicle miles traveled by households residing in mixed use in
+            the urban area in RVMPO county
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhDvmt_AzMx
+            - 2038
+    UrbanVanDvmt:
+        kind: info
+        desc: Daily vehicle miles traveled by on-demand transit vans in the Urban
+            area.
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVanDvmt
+            - 2038
+    UrbanComSvcDvmt:
+        kind: info
+        desc: Commercial service vehicle daily vehicle miles traveled attributable
+            to the demand of households and businesses located in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanComSvcDvmt
+            - 2038
+    UrbanLdvDvmt:
+        kind: info
+        desc: Sum of daily vehicle miles traveled by households residing in the urban
+            area, commercial service travel attributable to the demand of urban area
+            households and businesses, and on-demand transit van travel in the urban
+            area.
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLdvDvmt
+            - 2038
+    UrbanHhPop:
+        kind: info
+        desc: Number of persons residing in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhPop
+            - 2038
+    UrbanHhPop_Az:
+        kind: info
+        desc: Number of persons residing in urban area in RVMPO county
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhPop_Az
+            - 2038
+    UrbanHhPop_AzMx:
+        kind: info
+        desc: Number of persons residing in mixed use in urban area in RVMPO county
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhPop_AzMx
+            - 2038
+    UrbanHhPopLowInc.min:
+        kind: info
+        desc: Number of persons in low income (0to20K 2010$) households residing in
+            urban area (up to 20000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhPopLowInc.min
+            - 2038
+    UrbanHhPopLowInc.20000:
+        kind: info
+        desc: Number of persons in low income (0to20K 2010$) households residing in
+            urban area (20000 to 40000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhPopLowInc.20000
+            - 2038
+    UrbanHhPopLowInc.40000:
+        kind: info
+        desc: Number of persons in low income (0to20K 2010$) households residing in
+            urban area (40000 to 60000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhPopLowInc.40000
+            - 2038
+    UrbanHhPopLowInc.60000:
+        kind: info
+        desc: Number of persons in low income (0to20K 2010$) households residing in
+            urban area (60000 to 80000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhPopLowInc.60000
+            - 2038
+    UrbanHhPopLowInc.80000:
+        kind: info
+        desc: Number of persons in low income (0to20K 2010$) households residing in
+            urban area (80000 to 100000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhPopLowInc.80000
+            - 2038
+    UrbanHhPopLowInc.100000:
+        kind: info
+        desc: Number of persons in low income (0to20K 2010$) households residing in
+            urban area (100000 and up)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhPopLowInc.100000
+            - 2038
+    UrbanLdvDmvtPerCap:
+        kind: info
+        desc: daily vehicle miles traveled per person residing in the urban area.
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLdvDmvtPerCap
+            - 2038
+    UrbanLdvDmvtPerCap_Az:
+        kind: info
+        desc: daily vehicle miles traveled per person residing in the urban area in
+            RVMPO county.
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLdvDmvtPerCap_Az
+            - 2038
+    UrbanLdvDmvtPerCap_AzMx:
+        kind: info
+        desc: daily vehicle miles traveled per person residing in mixed use in the
+            urban area in RVMPO county.
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLdvDmvtPerCap_AzMx
+            - 2038
+    UrbanBusDvmt:
+        kind: info
+        desc: Daily vehicle miles traveled by Bus in the Urban area.
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanBusDvmt
+            - 2038
+    UrbanHvyTrkDvmt:
+        kind: info
+        desc: Daily vehicle miles traveled by Heavy Truck in the Urban area.
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHvyTrkDvmt
+            - 2038
+    UrbanRailDvmt:
+        kind: info
+        desc: Daily vehicle miles traveled by Rail in the Urban area.
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanRailDvmt
+            - 2038
+    UrbanHhGGE:
+        kind: info
+        desc: Average daily fuel consumption for the travel of households residing
+            in the Urban
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhGGE
+            - 2038
+    UrbanComSvcGGE:
+        kind: info
+        desc: Average daily fuel consumption for commercial services vehicle travel
+            arising from households and businesses located in the Urban
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanComSvcGGE
+            - 2038
+    UrbanVanGGE:
+        kind: info
+        desc: Average daily fuel consumption for public transit van in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVanGGE
+            - 2038
+    UrbanLdvGGE:
+        kind: info
+        desc: Average daily fuel consumption for light-duty vehicle travel attributable
+            to households and businesses in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLdvGGE
+            - 2038
+    UrbanBusGGE:
+        kind: info
+        desc: Average daily fuel consumption for Bus in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanBusGGE
+            - 2038
+    UrbanRailGGE:
+        kind: info
+        desc: Average daily fuel consumption for Rail in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanRailGGE
+            - 2038
+    UrbanHvyTrkGGE:
+        kind: info
+        desc: Average daily fuel consumption for heavy truck in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHvyTrkGGE
+            - 2038
+    UrbanHhNum:
+        kind: info
+        desc: Number of households residing in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhNum
+            - 2038
+    UrbanHhVehicles:
+        kind: info
+        desc: Total number of light-duty vehicles owned/leased by households residing
+            in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhVehicles
+            - 2038
+    UrbanHhAveVehPerHh:
+        kind: info
+        desc: Average number of light-duty vehicles owned/leased by households residing
+            in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhAveVehPerHh
+            - 2038
+    UrbanHhWorkers:
+        kind: info
+        desc: Number of workers residing in urban
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhWorkers
+            - 2038
+    UrbanHhDrivers:
+        kind: info
+        desc: Number of drivers residing in urban
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhDrivers
+            - 2038
+    NumUrbanMixHh:
+        kind: info
+        desc: Number of households residing in urban-mixed neighborhoods in urbanized
+            area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - NumUrbanMixHh
+            - 2038
+    UrbanHhCO2e:
+        kind: info
+        desc: Average annual production of greenhouse gas emissions from light-duty
+            vehicle travel by households residing in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhCO2e
+            - 2038
+    UrbanComSvcCO2e:
+        kind: info
+        desc: Average annual production of greenhouse gas emissions from commercial
+            service light-duty vehicle travel attributable to households and businesses
+            in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanComSvcCO2e
+            - 2038
+    UrbanVanCO2e:
+        kind: info
+        desc: Average annual production of greenhouse gas emissions from public transit
+            van travel in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVanCO2e
+            - 2038
+    UrbanLdvCO2e:
+        kind: info
+        desc: Average annual production of greenhouse gas emissions from light-duty
+            vehicle travel of households and businesses in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLdvCO2e
+            - 2038
+    UrbanLdvCO2eRate:
+        kind: info
+        desc: Average greenhouse gas emissions per mile of light duty vehicle travel
+            in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLdvCO2eRate
+            - 2038
+    UrbanBusCO2e:
+        kind: info
+        desc: Average annual production of greenhouse gas emissions from public transit
+            bus travel in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanBusCO2e
+            - 2038
+    UrbanRailCO2e:
+        kind: info
+        desc: Average annual production of greenhouse gas emissions from Rail travel
+            in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanRailCO2e
+            - 2038
+    UrbanBusCO2eRate:
+        kind: info
+        desc: Average greenhouse gas emissions per mile of public transit bus travel
+            in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanBusCO2eRate
+            - 2038
+    UrbanHvyTrkCO2e:
+        kind: info
+        desc: Average annual production of greenhouse gas emissions from heavy truck
+            travel in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHvyTrkCO2e
+            - 2038
+    UrbanHvyTrkAveCO2eRate:
+        kind: info
+        desc: Average greenhouse gas emissions per mile of heavy truck travel in the
+            urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHvyTrkAveCO2eRate
+            - 2038
+    UrbanWalkTrips:
+        kind: info
+        desc: Average number walk trips per day in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanWalkTrips
+            - 2038
+    UrbanBikeTrips:
+        kind: info
+        desc: Average number bike trips per day in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanBikeTrips
+            - 2038
+    UrbanTransitTrips:
+        kind: info
+        desc: Average number transit trips per day in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanTransitTrips
+            - 2038
+    UrbanModeShiftTrips:
+        kind: info
+        desc: Average number mode shift trips (Bike, Walk, & Transit) per day in urban
+            area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanModeShiftTrips
+            - 2038
+    UrbanLdv_TotalDelay:
+        kind: info
+        desc: Total light-duty vehicle delay (hours per day) on urban area roads
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLdv_TotalDelay
+            - 2038
+    UrbanHvyTrk_TotalDelay:
+        kind: info
+        desc: Total heavy truck vehicle delay (hours per day) on urban area roads
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHvyTrk_TotalDelay
+            - 2038
+    UrbanLdv_HvyTrk_TotalDelay:
+        kind: info
+        desc: Total light duty vehicle and heavy truck delay (hours per day) on the
+            urban area roads
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLdv_HvyTrk_TotalDelay
+            - 2038
+    UrbanLvdAveSp:
+        kind: info
+        desc: Average speed (miles per hour) of light-duty vehicle travel on urban
+            area roads
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLvdAveSp
+            - 2038
+    UrbanHvyTrkAveSp:
+        kind: info
+        desc: Average speed (miles per hour) of heavy truck travel on urban area roads
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHvyTrkAveSp
+            - 2038
+    UrbanBusAveSp:
+        kind: info
+        desc: Average speed (miles per hour) of bus travel on urban area roads
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanBusAveSp
+            - 2038
+    UrbanVehOwnershipCost:
+        kind: info
+        desc: Average annual household vehicle ownership cost (depreciation, finance,
+            insurance, taxes) in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOwnershipCost
+            - 2038
+    UrbanAveVehCostPM:
+        kind: info
+        desc: ' Average out-of-pocket cost in dollars per mile of vehicle travel in
+            urban area'
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanAveVehCostPM
+            - 2038
+    UrbanVehOperatingCost:
+        kind: info
+        desc: ' Average annual household vehicle operating cost in urban area'
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOperatingCost
+            - 2038
+    UrbanTotalHhIncome:
+        kind: info
+        desc: ' Total annual household income in urban area'
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanTotalHhIncome
+            - 2038
+    UrbanAveHhIncome:
+        kind: info
+        desc: Average annual household income in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanAveHhIncome
+            - 2038
+    UrbanTotalHhIncomeLowInc.min:
+        kind: info
+        desc: ' Total annual low household income (0to20K 2010$) in urban area (up
+            to 20000)'
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanTotalHhIncomeLowInc.min
+            - 2038
+    UrbanTotalHhIncomeLowInc.20000:
+        kind: info
+        desc: ' Total annual low household income (0to20K 2010$) in urban area (20000
+            to 40000)'
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanTotalHhIncomeLowInc.20000
+            - 2038
+    UrbanTotalHhIncomeLowInc.40000:
+        kind: info
+        desc: ' Total annual low household income (0to20K 2010$) in urban area (40000
+            to 60000)'
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanTotalHhIncomeLowInc.40000
+            - 2038
+    UrbanTotalHhIncomeLowInc.60000:
+        kind: info
+        desc: ' Total annual low household income (0to20K 2010$) in urban area (60000
+            to 80000)'
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanTotalHhIncomeLowInc.60000
+            - 2038
+    UrbanTotalHhIncomeLowInc.80000:
+        kind: info
+        desc: ' Total annual low household income (0to20K 2010$) in urban area (80000
+            to 100000)'
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanTotalHhIncomeLowInc.80000
+            - 2038
+    UrbanTotalHhIncomeLowInc.100000:
+        kind: info
+        desc: ' Total annual low household income (0to20K 2010$) in urban area (100000
+            and up)'
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanTotalHhIncomeLowInc.100000
+            - 2038
+    UrbanHhNumLowInc.min:
+        kind: info
+        desc: Number of low income (0to20K 2010$) households residing in urban area
+            (up to 20000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhNumLowInc.min
+            - 2038
+    UrbanHhNumLowInc.20000:
+        kind: info
+        desc: Number of low income (0to20K 2010$) households residing in urban area
+            (20000 to 40000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhNumLowInc.20000
+            - 2038
+    UrbanHhNumLowInc.40000:
+        kind: info
+        desc: Number of low income (0to20K 2010$) households residing in urban area
+            (40000 to 60000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhNumLowInc.40000
+            - 2038
+    UrbanHhNumLowInc.60000:
+        kind: info
+        desc: Number of low income (0to20K 2010$) households residing in urban area
+            (60000 to 80000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhNumLowInc.60000
+            - 2038
+    UrbanHhNumLowInc.80000:
+        kind: info
+        desc: Number of low income (0to20K 2010$) households residing in urban area
+            (80000 to 100000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhNumLowInc.80000
+            - 2038
+    UrbanHhNumLowInc.100000:
+        kind: info
+        desc: Number of low income (0to20K 2010$) households residing in urban area
+            (100000 and up)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhNumLowInc.100000
+            - 2038
+    UrbanAveHhIncomeLowInc:
+        kind: info
+        desc: Average annual low household income (0to20K 2010$) in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanAveHhIncomeLowInc
+            - 2038
+    UrbanAveHhDVMT:
+        kind: info
+        desc: Average household DVMT in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanAveHhDVMT
+            - 2038
+    UrbanVehOperatingCostLowInc.min:
+        kind: info
+        desc: Average annual household vehicle operating cost for low income (0to20K
+            2010$) in urban area (up to 20000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOperatingCostLowInc.min
+            - 2038
+    UrbanVehOperatingCostLowInc.20000:
+        kind: info
+        desc: Average annual household vehicle operating cost for low income (0to20K
+            2010$) in urban area (20000 to 40000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOperatingCostLowInc.20000
+            - 2038
+    UrbanVehOperatingCostLowInc.40000:
+        kind: info
+        desc: Average annual household vehicle operating cost for low income (0to20K
+            2010$) in urban area (40000 to 60000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOperatingCostLowInc.40000
+            - 2038
+    UrbanVehOperatingCostLowInc.60000:
+        kind: info
+        desc: Average annual household vehicle operating cost for low income (0to20K
+            2010$) in urban area (60000 to 80000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOperatingCostLowInc.60000
+            - 2038
+    UrbanVehOperatingCostLowInc.80000:
+        kind: info
+        desc: Average annual household vehicle operating cost for low income (0to20K
+            2010$) in urban area (80000 to 100000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOperatingCostLowInc.80000
+            - 2038
+    UrbanVehOperatingCostLowInc.100000:
+        kind: info
+        desc: Average annual household vehicle operating cost for low income (0to20K
+            2010$) in urban area (100000 and up)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOperatingCostLowInc.100000
+            - 2038
+    UrbanVehOwnershipCostLowInc.min:
+        kind: info
+        desc: Average annual household vehicle ownership cost for low income(0to20K
+            2010$) in urban area (up to 20000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOwnershipCostLowInc.min
+            - 2038
+    UrbanVehOwnershipCostLowInc.20000:
+        kind: info
+        desc: Average annual household vehicle ownership cost for low income(0to20K
+            2010$) in urban area (20000 to 40000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOwnershipCostLowInc.20000
+            - 2038
+    UrbanVehOwnershipCostLowInc.40000:
+        kind: info
+        desc: Average annual household vehicle ownership cost for low income(0to20K
+            2010$) in urban area (40000 to 60000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOwnershipCostLowInc.40000
+            - 2038
+    UrbanVehOwnershipCostLowInc.60000:
+        kind: info
+        desc: Average annual household vehicle ownership cost for low income(0to20K
+            2010$) in urban area (60000 to 80000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOwnershipCostLowInc.60000
+            - 2038
+    UrbanVehOwnershipCostLowInc.80000:
+        kind: info
+        desc: Average annual household vehicle ownership cost for low income(0to20K
+            2010$) in urban area (80000 to 100000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOwnershipCostLowInc.80000
+            - 2038
+    UrbanVehOwnershipCostLowInc.100000:
+        kind: info
+        desc: Average annual household vehicle ownership cost for low income(0to20K
+            2010$) in urban area (100000 and up)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehOwnershipCostLowInc.100000
+            - 2038
+    UrbanHhDvmtLowInc.min:
+        kind: info
+        desc: Daily vehicle miles traveled by low income (0to20K 2010$) households
+            residing in the urban area (up to 20000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhDvmtLowInc.min
+            - 2038
+    UrbanHhDvmtLowInc.20000:
+        kind: info
+        desc: Daily vehicle miles traveled by low income (0to20K 2010$) households
+            residing in the urban area (20000 to 40000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhDvmtLowInc.20000
+            - 2038
+    UrbanHhDvmtLowInc.40000:
+        kind: info
+        desc: Daily vehicle miles traveled by low income (0to20K 2010$) households
+            residing in the urban area (40000 to 60000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhDvmtLowInc.40000
+            - 2038
+    UrbanHhDvmtLowInc.60000:
+        kind: info
+        desc: Daily vehicle miles traveled by low income (0to20K 2010$) households
+            residing in the urban area (60000 to 80000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhDvmtLowInc.60000
+            - 2038
+    UrbanHhDvmtLowInc.80000:
+        kind: info
+        desc: Daily vehicle miles traveled by low income (0to20K 2010$) households
+            residing in the urban area (80000 to 100000)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhDvmtLowInc.80000
+            - 2038
+    UrbanHhDvmtLowInc.100000:
+        kind: info
+        desc: Daily vehicle miles traveled by low income (0to20K 2010$) households
+            residing in the urban area (100000 and up)
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanHhDvmtLowInc.100000
+            - 2038
+    HhVehTravCostShareLowInc:
+        kind: info
+        desc: Low income (0to20K 2010$) household vehicle Own & out-of-pocket costs
+            share of HH low income total (all low income HHs)in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - HhVehTravCostShareLowInc
+            - 2038
+    HhVehTravCostShare:
+        kind: info
+        desc: Household vehicle Own & out-of-pocket costs share of HH income total
+            (all HHs) in urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - HhVehTravCostShare
+            - 2038
+    UrbanLdvDmvtPerCapLowInc:
+        kind: info
+        desc: daily vehicle miles traveled per person in low income (0to20K 2010$)
+            households residing in the urban area.
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanLdvDmvtPerCapLowInc
+            - 2038
+    MareaCarSvcLtTrkDvmtProp:
+        kind: info
+        desc: Average proportion car service vehicle DVMT in light trucks used by
+            households residing in the Marea
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - MareaCarSvcLtTrkDvmtProp
+            - 2038
+    UrbanAvePopDen:
+        kind: info
+        desc: Average number of persons per acre in the urbanized area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanAvePopDen
+            - 2038
+    MedianBzonePopDen:
+        kind: info
+        desc: Median Bzone population density in urbanized area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - MedianBzonePopDen
+            - 2038
+    PropUrbanMixHh:
+        kind: info
+        desc: Proportion of urbanized area households that reside in urban-mixed neighborhoods
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - PropUrbanMixHh
+            - 2038
+    HhTotDailyWkrParkingCost:
+        kind: info
+        desc: Total daily work parking expenditures by households living in the urbanized
+            portion of the Marea
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - HhTotDailyWkrParkingCost
+            - 2038
+    HhTotDailyOthParkingCost:
+        kind: info
+        desc: Total daily non-work parking expenditures by households living in the
+            urbanized portion of the Marea
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - HhTotDailyOthParkingCost
+            - 2038
+    PropSFDU:
+        kind: info
+        desc: Proportion of urbanized area households that reside in single-family
+            dwellings
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - PropSFDU
+            - 2038
+    UrbanVehicleTrips:
+        kind: info
+        desc: Average number of vehicle trips per day by household members in urban
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehicleTrips
+            - 2038
+    UrbanVehTripLen:
+        kind: info
+        desc: Average household vehicle trip length in miles in urban
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - UrbanVehTripLen
+            - 2038
+    MareaCarSvcAutoDvmtProp:
+        kind: info
+        desc: Average proportion car service vehicle DVMT in autos used by households
+            residing in the Marea
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - MareaCarSvcAutoDvmtProp
+            - 2038
+    MareaHouseholdCarSvcDvmt:
+        kind: info
+        desc: Total DVMT in car service vehicles of persons in households and non-institutional
+            group quarters in Marea
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            loc:
+            - MareaHouseholdCarSvcDvmt
+            - 2038
+
+
+
+    UrbanHhCO2eReduction:
+        shortname: Cars GHG Reduction
+        kind: info
+        desc: Reduction from 2010 level in average annual production of greenhouse gas emissions from light-duty
+            vehicle travel by households residing in the urban area
+        transform: none
+        metamodeltype: linear
+        parser:
+            file: Measures_VERSPM_2010,2038_Marea=RVMPO.csv
+            eval: loc['UrbanHhCO2e','2010'] - loc['UrbanHhCO2e','2038']
+
+...
