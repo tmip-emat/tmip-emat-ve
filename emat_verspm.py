@@ -1,30 +1,26 @@
 
-import tempfile
 import os
-import re
-import pandas as pd
 import numpy as np
+import pandas as pd
+import logging
+import tempfile
+import re
 import shutil
-from distutils.dir_util import copy_tree
 import platform
 import subprocess
 import json
+from distutils.dir_util import copy_tree
 
-from emat import Scope
-from emat import SQLiteDB
+from emat import Scope, SQLiteDB
 from emat.model.core_files import FilesCoreModel
-from emat.model.core_files.parsers import TableParser, MappingParser, loc, key, iloc
+from emat.model.core_files.parsers import TableParser, MappingParser, loc, key
 
-import logging
 _logger = logging.getLogger("EMAT.VERSPM")
 
 # The demo model code is located in the same
 # directory as this script file.  We can recover
 # this directory name like this, even if the
 # current working directory is different.
-# In your application, you may want to program
-# this differently, possibly hard-coding the name
-# of the model directory.
 this_directory = os.path.dirname(__file__)
 
 def scenario_input(*filename):
@@ -32,89 +28,9 @@ def scenario_input(*filename):
 	return os.path.join(this_directory, 'scenario_inputs', *filename)
 
 def join_norm(*args):
+	"""Normalize joined paths."""
 	return os.path.normpath(os.path.join(*args))
 
-
-class ReplacementOfNumber:
-	"""
-	This class provides a mechanism to edit a text file, replacing
-	a the numerical value of a particular parameter with a new value.
-
-	This implementation uses "regular expressions"
-	https://en.wikipedia.org/wiki/Regular_expression
-	to find and replace assignment operations in the text file being
-	manipulated.  An advantage of this approach is that the source
-	file that contains the script to be modified can start off in
-	a "runnable" default, which can be used independently of
-	TMIP-EMAT.
-	"""
-	numbr = r"([-+]?\d*\.?\d*[eE]?[-+]?\d*|\d+\/\d+)"  # matches any number representation
-	def __init__(self, varname, assign_operator=":", logger=None):
-		self.varname = varname
-		# In this example, we use `re.compile` to create a tool that will
-		# search through a text file, finding instances of the general
-		# form "varname: 123.456", and be able to replace the value
-		# 123.456 with some other number. The assignment_operator in
-		# this example is set to the colon character, as that's what
-		# is used in YAML files which are used in this demo, but it can
-		# be replaced with "=" or "<-" or whatever assignment operator is
-		# used in the text of the file being modified.
-		self.regex = re.compile(f"({varname}\s*{assign_operator}\s*)({self.numbr})")
-		self.logger = logger
-	def sub(self, value, s):
-		"""
-		Find and replace all instances of the variable assignment in a string.
-
-		Args:
-			value (numeric):
-				The new value to insert.
-			s (str):
-				The string to manipulate. This is generally the complete
-				text of a script file of some kind that has already been
-				loaded into memory.
-
-		Returns:
-			s (str): The edited version of the input string.
-		"""
-		s, n = self.regex.subn(f"\g<1>{value}", s)
-		if self.logger is not None:
-			self.logger.info(f"For '{self.varname}': {n} substitutions made")
-		return s
-
-
-class ReplacementOfString:
-	"""
-	This class provides a mechanism to edit a text file, replacing
-	the string value of a particular parameter with a new value.
-	The regular expression used to find and replace the strings is
-	different, but the fundamental approach is the same as for the
-	`ReplacementOfNumber` above.
-	"""
-	def __init__(self, varname, assign_operator=":", logger=None):
-		self.varname = varname
-		self.regex = re.compile(f"({varname}\s*{assign_operator}\s*)([^#\n]*)(#.*)?", flags=re.MULTILINE)
-		self.logger = logger
-	def sub(self, value, s):
-		"""
-		Find and replace all instances of the variable assignment in a string.
-
-		Args:
-			value (str):
-				The new value to insert.
-			s (str):
-				The string to manipulate. This is generally the complete
-				text of a script file of some kind that has already been
-				loaded into memory.
-
-		Returns:
-			s (str): The edited version of the input string.
-		"""
-		# This implementation of the replacement algorithm preserves
-		# comments appended after the value using the hash # character.
-		s, n = self.regex.subn(f"\g<1>{value}  \g<3>", s)
-		if self.logger is not None:
-			self.logger.info(f"For '{self.varname}': {n} substitutions made")
-		return s
 
 
 class VERSPModel(FilesCoreModel):
@@ -122,14 +38,20 @@ class VERSPModel(FilesCoreModel):
 	A class for using the Vision Eval RSPM as a files core model.
 
 	Args:
-		db (emat.Database):
+		db (emat.Database, optional):
 			An optional Database to store experiments and results.
-			This allows this demo to store results in a persistent
+			This allows this module to store results in a persistent
 			manner across sessions.  If a `db` is not given, one is
 			created and initialized in the temporary directory
 			alongside the other model files, but it will be
 			deleted automatically when the Python session ends.
-
+		db_filename (str, default "verspm.db")
+			The filename used to create a database if no existing
+			database is given in `db`.
+		scope (emat.Scope, optional):
+			A YAML file that defines the scope for these model
+			runs. If not given, the default scope stored in this
+			package directly is used.
 	"""
 
 	def __init__(self, db=None, db_filename="verspm.db", scope=None):
@@ -151,6 +73,7 @@ class VERSPModel(FilesCoreModel):
 		if scope is None:
 			scope = Scope(join_norm(cwd, "verspm-scope.yml"))
 
+		# Initialize a new daatabase if none was given.
 		if db is None:
 			if os.path.exists(db_filename):
 				initialize = False
@@ -178,17 +101,12 @@ class VERSPModel(FilesCoreModel):
 			self._sqlitedb_path = db.database_path
 
 		# Populate the model_path directory of the files-based model.
-		# Depending on how large your core model is, you may or may
-		# not want to be copying the whole thing.  As an alternative,
-		# you can work in the original directory, but just be careful
-		# not to do anything destructive to files that are not otherwise
-		# backed up elsewhere.
-		#model_source = os.path.expanduser(self.config['model_source'])
 		copy_tree(
 			join_norm(this_directory, 'VERSPM'),
 			join_norm(cwd, self.model_path),
 		)
 
+		# Ensure that R can be found.
 		r_lib = self.config['r_library_path']
 		with open(join_norm(cwd, self.model_path, '.Rprofile'), 'wt') as rprof:
 			rprof.write(f'.libPaths("{r_lib}")\n')
@@ -227,11 +145,11 @@ class VERSPModel(FilesCoreModel):
 
 	def setup(self, params: dict):
 		"""
-		Configure the demo core model with the experiment variable values.
+		Configure the core model with the experiment variable values.
 
 		This method is the place where the core model set up takes place,
 		including creating or modifying files as necessary to prepare
-		for a core model run.  When running experiments, this method
+		for a RSPM core model run.  When running experiments, this method
 		is called once for each core model experiment, where each experiment
 		is defined by a set of particular values for both the exogenous
 		uncertainties and the policy levers.  These values are passed to
@@ -240,15 +158,6 @@ class VERSPModel(FilesCoreModel):
 		be used without the `run` method, allowing the user to manually
 		inspect the prepared files and ensure they are correct before
 		actually running a potentially expensive model.
-
-		Each input exogenous uncertainty or policy lever can potentially
-		be used to manipulate multiple different aspects of the underlying
-		core model.  For example, a policy lever that includes a number of
-		discrete future network "build" options might trigger the replacement
-		of multiple related network definition files.  Or, a single uncertainty
-		relating to the cost of fuel might scale both a parameter linked to
-		the modeled per-mile cost of operating an automobile, as well as the
-		modeled total cost of fuel used by transit services.
 
 		At the end of the `setup` method, a core model experiment should be
 		ready to run using the `run` method.
@@ -313,7 +222,7 @@ class VERSPModel(FilesCoreModel):
 
 		# The process of manipulating each input file is broken out
 		# into discrete sub-methods, as each step is loosely independent
-		# and having seperate methods makes this clearer.
+		# and having separate methods makes this clearer.
 		self._manipulate_model_parameters_json(params)
 		self._manipulate_income(params)
 		self._manipulate_bikes(params)
@@ -572,7 +481,7 @@ class VERSPModel(FilesCoreModel):
 		"""
 		Run the core model.
 
-		This method is the place where the core model run takes place.
+		This method is the place where the RSPM core model run takes place.
 		Note that this method takes no arguments; all the input
 		exogenous uncertainties and policy levers are delivered to the
 		core model in the `setup` method, which will be executed prior
@@ -583,19 +492,13 @@ class VERSPModel(FilesCoreModel):
 		When running experiments, this method is called once for each core
 		model experiment, after the `setup` method completes.
 
-		If the core model requires some post-processing by `post_process`
-		method defined in this API, then when this function terminates
-		the model directory should be in a state that is ready to run the
-		`post_process` command next.
-
 		Raises:
 		    UserWarning: If model is not properly setup
 		"""
 		_logger.info("VERSPM RUN ...")
 
-		# This demo uses the `emat-road-test-demo` command line tool
-		# that is installed automatically when TMIP-EMAT is installed,
-		# but the name of the tool on Windows also includes `.exe`.
+		# This demo uses the `Rscript` command line tool to run R
+		# programmatically.  On Windows, the tool also includes `.exe`.
 		if platform.system() == 'Windows':
 			cmd = 'Rscript.exe'
 		else:
@@ -612,6 +515,7 @@ class VERSPModel(FilesCoreModel):
 			thismodel$query(Geography=c(Type='Marea',Value='RVMPO'))
 			""")
 
+		# Ensure that R paths are set correctly.
 		r_lib = self.config['r_library_path']
 		with open(join_norm(self.local_directory, '.Rprofile'), 'wt') as rprof:
 			rprof.write(f'.libPaths("{r_lib}")\n')
@@ -728,16 +632,11 @@ class VERSPModel(FilesCoreModel):
 				If post process is not available for specified measure
 		"""
 
-		# Derived from VERSPMResults.R in VisionEval package
+		# Derived from VERSPMResults.R in VisionEval package, this script
+		# generates a few more aggregate outputs.
 
 		if output_path is None:
 			output_path = join_norm(self.local_directory, self.model_path, self.rel_output_path)
-		# marea_2038 = pd.read_csv(
-		# 	join_norm(output_path, 'Marea.csv'),
-		# ).query("Year==2038")
-		# household_2038 = pd.read_csv(
-		# 	join_norm(output_path, 'Household.csv'),
-		# ).query("Year==2038")
 		marea_2038 = pd.read_csv(
 			join_norm(output_path, 'Marea_2038_1.csv'),
 		)
